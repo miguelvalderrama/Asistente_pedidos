@@ -1,8 +1,16 @@
 import tkinter
 import tkinter.messagebox
 import json
+import pandas as pd
 import customtkinter
+import farmacias
+import os
+import datetime
 from tkinter import ttk
+from tkinter import filedialog
+from tkinter import messagebox
+
+
 
 customtkinter.set_appearance_mode("Dark")  # Modes: "System" (standard), "Dark", "Light"
 customtkinter.set_default_color_theme("blue")  # Themes: "blue" (standard), "green", "dark-blue"
@@ -18,6 +26,10 @@ class App(customtkinter.CTk):
         self.title("Comparador de precios")
         self.geometry(f"{App.WIDTH}x{App.HEIGHT}")
         self.protocol("WM_DELETE_WINDOW", self.on_closing)  # call .on_closing() when app gets closed
+
+        with open("temp/config.json", "r") as f:
+            self.fconfig = json.load(f)
+            self.ultima_actualizacion = self.fconfig["last_update"]
 
         # ============ create two frames ============
 
@@ -48,18 +60,23 @@ class App(customtkinter.CTk):
 
         self.button_1 = customtkinter.CTkButton(master=self.frame_left,
                                                 text="Actualizar Archivos",
-                                                command="")
+                                                command=self.actualizar_archivos)
         self.button_1.grid(row=2, column=0, pady=10, padx=20)
 
         self.button_2 = customtkinter.CTkButton(master=self.frame_left,
-                                                text="No Disponible",
+                                                text="Nuevo Pedido",
                                                 command="")
         self.button_2.grid(row=3, column=0, pady=10, padx=20)
 
         self.button_3 = customtkinter.CTkButton(master=self.frame_left,
-                                                text="Cargar Archivos",
+                                                text="Descargar Archivos",
                                                 command="")
         self.button_3.grid(row=4, column=0, pady=10, padx=20)
+
+        self.label_last_update = customtkinter.CTkLabel(master=self.frame_left,
+                                              text="Ultima actualización: \n" + self.ultima_actualizacion,
+                                              text_font=("Roboto Medium", -16))  # font name and size in px
+        self.label_last_update.grid(row=8, column=0, pady=10, padx=10)
 
         self.button_4 = customtkinter.CTkButton(master=self.frame_left,
                                                 text="Configuración",
@@ -124,10 +141,6 @@ class App(customtkinter.CTk):
         self.tree.column(self.farmacias_activas_abrev[1], width=50, anchor='center')
         self.tree.column(self.farmacias_activas_abrev[2], width=50, anchor='center')
 
-        # Test data
-        for i in range(100):
-            self.tree.insert("", "end", values=("Acetaminofen 650MG X 10 TAB LA SANTE", "10.69", "DROLANCA", 0, 0, 0))
-
         self.button_5 = customtkinter.CTkButton(master=self.frame_right,
                                                 text="Busqueda",
                                                 border_width=2,  # <- custom border_width
@@ -136,14 +149,15 @@ class App(customtkinter.CTk):
         self.button_5.grid(row=2, column=1, columnspan=1, rowspan=2,  pady=10, padx=20, sticky="we")
 
         self.entry_1 = customtkinter.CTkEntry(master=self.frame_right,
-                                                text="Buscar",
+                                                placeholder_text="Buscar",
                                                 border_width=2,  # <- custom border_width
                                                 fg_color=None)  # <- no fg_color
         self.entry_1.grid(row=2, column=0, columnspan=1, rowspan=2,  pady=10, padx=20, sticky="we")
 
         # set default values
-        self.button_2.configure(state="disabled", text="No Disponible")
-        self.button_3.configure(state="disabled", text="Cargar Archivos")
+        self.button_2.configure(state="disabled", text="Nuevo Pedido")
+        self.button_3.configure(state="disabled", text="Descargar Archivos")
+        self.entry_1.bind("<Return>", lambda event: print("Return pressed"))
         self.tree.bind("<Double-1>", self.change_units)
         
         # Full size window
@@ -292,6 +306,10 @@ class App(customtkinter.CTk):
         self.farmacias_activas = []
         for i in range(len(self.farmacias_activas_var)):
             self.farmacias_activas.append(self.farmacias_activas_var[i].get())
+        
+        if len(set(self.farmacias_activas)) != 3:
+            messagebox.showerror("Error", "No pueden haber farmacias repetidas")
+            return self.config_window.destroy()
 
         # Update farmacias.json config file
         for farmacia in self.farmacias:
@@ -303,6 +321,80 @@ class App(customtkinter.CTk):
             json.dump(self.farmacias, f)
 
         self.config_window.destroy()
+
+    def actualizar_archivos(self):
+        #Create a new window
+        self.update_window = customtkinter.CTkToplevel(self)
+        self.update_window.title("Actualizar archivos")
+        self.update_window.geometry("520x300")
+        self.update_window.grid_rowconfigure(0, weight=1)
+        self.update_window.grid_columnconfigure(0, weight=1)
+
+        # Set window in the center of the screen
+        self.update_window.update_idletasks()
+        x = (self.update_window.winfo_screenwidth() - self.update_window.winfo_reqwidth()) / 2
+        y = (self.update_window.winfo_screenheight() - self.update_window.winfo_reqheight()) / 2
+        self.update_window.geometry("+%d+%d" % (x, y))
+
+        # Create a frame
+        self.update_frame = customtkinter.CTkFrame(self.update_window)
+        self.update_frame.grid(row=0, column=0, columnspan=3, rowspan=3, pady=10, padx=10, sticky="nswe")
+        self.update_frame.grid_rowconfigure((0,1,2,3,4), weight=1)
+        self.update_frame.grid_columnconfigure((0,1), weight=1)
+
+        self.update_label_1 = customtkinter.CTkLabel(self.update_frame, text="Ultima actualización: ")
+        self.update_label_1.grid(row=0, column=0, columnspan=2, pady=10, padx=10, sticky="we")
+
+        # Create a label
+        self.update_label_2 = customtkinter.CTkLabel(self.update_frame,
+                                                        text="Archivos seleccionados:",
+                                                        text_font=("Roboto Medium", -16))
+        self.update_label_2.grid(row=2, column=0, columnspan=3, pady=10, padx=10, sticky="nwe")
+
+        # Create a listbox
+        self.update_listbox = customtkinter.CTkTextbox(self.update_frame,
+                                                        width=50,
+                                                        height=100)
+        self.update_listbox.grid(row=3, column=0, columnspan=3, pady=10, padx=10, sticky="nswe")
+        # Update listbox
+        self.update_file_list()
+
+        # Create a button
+        self.update_button_2 = customtkinter.CTkButton(self.update_frame,
+                                                        text="Actualizar",
+                                                        command=lambda: [self.save_last_update(),self.update_window.destroy()])
+        self.update_button_2.grid(row=4, column=0, columnspan=1, pady=10, padx=10, sticky="we")
+
+        # Create a button
+        self.update_button_3 = customtkinter.CTkButton(self.update_frame,
+                                                        text="Cancelar",
+                                                        command=self.update_window.destroy)
+        self.update_button_3.grid(row=4, column=1, columnspan=1, pady=10, padx=10, sticky="we")
+
+        self.update_window.bind("<Escape>", lambda event: self.update_window.destroy())
+
+    def update_file_list(self):
+        # Get the files
+        self.files = os.listdir("Archivos")
+        self.files = [file for file in self.files if file.endswith(".xlsx") or file.endswith(".xls")]
+        # Update the listbox
+        for file in self.files:
+            # Add the file name to the listbox
+            self.update_listbox.insert("end", "•" + file + "\n")
+        self.update_listbox.configure(state="disabled")
+        # Focus on update window
+        self.update_window.focus()
+    
+    def save_last_update(self):
+        # Save the last update date in temp/config.json
+        with open("temp/config.json", "r") as f:
+            config = json.load(f)
+        # Update the last update date
+        config["last_update"] = datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+        with open("temp/config.json", "w") as f:
+            json.dump(config, f)
+        # Update the label
+        self.update_label_1.configure(text="Ultima actualización: " + config["last_update"])
 
     def on_closing(self, event=0):
         self.destroy()
