@@ -88,7 +88,7 @@ def process_cobeca():
     data = data[6:]
     # Rename the headers
     data.columns = new_headers
-    cols_to_use = ['Descripción del Artículo', 'Precio Mayoreo', 'OFERTAS']
+    cols_to_use = ['Descripción del Artículo', 'Precio Mayoreo', 'OFERTAS', 'existencia']
     data = data[cols_to_use]
     # Replace - with 0 in the column 'OFERTAS'
     data['OFERTAS'] = data['OFERTAS'].replace('-', 0)
@@ -98,15 +98,21 @@ def process_cobeca():
     # if ofertas is empty, then ofertas = 0
     data['OFERTAS'] = data['OFERTAS'].replace(numpy.nan, 0)
     # If Precios Mayoreo is 0.01 or less, drop the row
-    data = data[data['Precio Mayoreo'] > 0.01]
+    data = data[data['Precio Mayoreo'] > 0.99]
+    # If existencia is 0, drop the row
+    data = data[data['existencia'] != 0]
     # Precio Mayoreo * OFERTAS if OFERTAS is not 0 if OFERTAS is 0, Precio Mayoreo
-    data['Precio Mayoreo'] = numpy.where(data['OFERTAS'] != 0, data['Precio Mayoreo'] * data['OFERTAS'], data['Precio Mayoreo'])
+    data['Precio Mayoreo'] = numpy.where(data['OFERTAS'] != 0, data['Precio Mayoreo'] - (data['Precio Mayoreo']*data['OFERTAS']), data['Precio Mayoreo'])
     # Round the column 'Precio Mayoreo' to 2 decimals
     data['Precio Mayoreo'] = data['Precio Mayoreo'].round(2)
     # Drop the column 'OFERTAS'
     data = data.drop('OFERTAS', axis=1)
+    # Drop the column 'existencia'
+    data = data.drop('existencia', axis=1)
     # Add column 'Proveedor'
     data['Proveedor'] = 'Cobeca'
+    # Order by Descripción del Artículo
+    data = data.sort_values(by=['Descripción del Artículo'])
     # Save the data as a csv file in temp/processed_csv folder
     data.to_csv('./temp/processed_csv/Cobeca.csv', index=False)
 
@@ -326,4 +332,3 @@ def prepare_final_csv():
     relacion['No encontrados'] = list_not_found
     with open('./temp/relacion.json', 'w') as json_file:
         json.dump(relacion, json_file)
-

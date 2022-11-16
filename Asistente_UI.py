@@ -141,23 +141,29 @@ class App(customtkinter.CTk):
                                                 text="Busqueda",
                                                 border_width=2,  # <- custom border_width
                                                 fg_color=None,  # <- no fg_color
-                                                command="")
+                                                command=self.search_and_update_tree)
         self.button_5.grid(row=2, column=1, columnspan=1, rowspan=2,  pady=10, padx=20, sticky="we")
 
-        self.entry_1 = customtkinter.CTkEntry(master=self.frame_right,
+        self.search_entry = customtkinter.CTkEntry(master=self.frame_right,
                                                 placeholder_text="Buscar",
                                                 border_width=2,  # <- custom border_width
                                                 fg_color=None)  # <- no fg_color
-        self.entry_1.grid(row=2, column=0, columnspan=1, rowspan=2,  pady=10, padx=20, sticky="we")
+        self.search_entry.grid(row=2, column=0, columnspan=1, rowspan=2,  pady=10, padx=20, sticky="we")
 
         # set default values
         self.button_2.configure(state="disabled", text="Nuevo Pedido")
         self.button_3.configure(state="disabled", text="Descargar Archivos")
-        self.entry_1.bind("<Return>", lambda event: print("Return pressed"))
+        self.search_entry.bind("<Return>", lambda event: self.search_and_update_tree())
         self.tree.bind("<Double-1>", self.change_units)
         
         # Full size window
         self.state("zoomed")
+
+        self.df = pd.DataFrame()
+        # Start csv dataframe
+        if os.path.isfile("./temp/final_csv.csv"):
+            self.df = pd.read_csv("./temp/final_csv.csv")
+        
 
     def change_units(self, event):
         """Change the number of units of the product for each farmacia"""
@@ -439,6 +445,23 @@ class App(customtkinter.CTk):
         self.not_found_listbox.configure(state="disabled")
         if relacion['No encontrados'] == []:
             self.not_found_window.destroy()
+
+    def search_and_update_tree(self):
+        if os.path.isfile("temp/final_csv.csv") and self.df.empty:
+            self.df = pd.read_csv("temp/final_csv.csv")
+        elif not os.path.isfile("temp/final_csv.csv"):
+            messagebox.showerror("Error", "No se ha encontrado el archivo para busqueda")
+        # Get the search text
+        search_text = self.search_entry.get()
+        # Clear the tree
+        self.tree.delete(*self.tree.get_children())
+        # Search in self.df
+        self.search_df = self.df[self.df["Descripción del Artículo"].str.contains(search_text, case=False)]
+        # Order the search_df by Precio Mayoreo
+        self.search_df = self.search_df.sort_values(by=["Precio Mayoreo"], ascending=True)
+        # Update the tree
+        for index, row in self.search_df.iterrows():
+            self.tree.insert("", "end", values=(row["Descripción del Artículo"], row["Precio Mayoreo"], row["Proveedor"], row[self.farmacias_activas_abrev[0]], row[self.farmacias_activas_abrev[1]], row[self.farmacias_activas_abrev[2]]))
 
     def on_closing(self, event=0):
         self.destroy()
