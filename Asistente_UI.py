@@ -1,5 +1,3 @@
-import tkinter
-import tkinter.messagebox
 import json
 import pandas as pd
 import customtkinter
@@ -7,9 +5,7 @@ import farmacias
 import os
 import datetime
 from tkinter import ttk
-from tkinter import filedialog
 from tkinter import messagebox
-
 
 
 customtkinter.set_appearance_mode("Dark")  # Modes: "System" (standard), "Dark", "Light"
@@ -319,7 +315,9 @@ class App(customtkinter.CTk):
                 self.farmacias[farmacia]["estado"] = "Inactivo"
         with open("farmacias.json", "w") as f:
             json.dump(self.farmacias, f)
-
+        
+        self.save_last_update()
+        farmacias.prepare_final_csv()
         self.config_window.destroy()
 
     def actualizar_archivos(self):
@@ -342,7 +340,7 @@ class App(customtkinter.CTk):
         self.update_frame.grid_rowconfigure((0,1,2,3,4), weight=1)
         self.update_frame.grid_columnconfigure((0,1), weight=1)
 
-        self.update_label_1 = customtkinter.CTkLabel(self.update_frame, text="Ultima actualización: ")
+        self.update_label_1 = customtkinter.CTkLabel(self.update_frame, text=self.label_last_update.text)
         self.update_label_1.grid(row=0, column=0, columnspan=2, pady=10, padx=10, sticky="we")
 
         # Create a label
@@ -362,7 +360,7 @@ class App(customtkinter.CTk):
         # Create a button
         self.update_button_2 = customtkinter.CTkButton(self.update_frame,
                                                         text="Actualizar",
-                                                        command=lambda: [self.save_last_update(),self.update_window.destroy()])
+                                                        command=lambda: [farmacias.prepare_final_csv(),self.save_last_update(),self.not_found_drogs(),self.update_window.destroy()])
         self.update_button_2.grid(row=4, column=0, columnspan=1, pady=10, padx=10, sticky="we")
 
         # Create a button
@@ -394,7 +392,53 @@ class App(customtkinter.CTk):
         with open("temp/config.json", "w") as f:
             json.dump(config, f)
         # Update the label
-        self.update_label_1.configure(text="Ultima actualización: " + config["last_update"])
+        self.label_last_update.configure(text="Ultima actualización: \n" + config["last_update"])
+
+    def not_found_drogs(self):
+        # Open a new window
+        self.not_found_window = customtkinter.CTkToplevel(self)
+        self.not_found_window.title("Droguerias no encontradas")
+        self.not_found_window.geometry("320x220")
+        self.not_found_window.grid_rowconfigure(0, weight=1)
+        self.not_found_window.grid_columnconfigure(0, weight=1)
+
+        # Set window in the center of the screen
+        self.not_found_window.update_idletasks()
+        x = (self.not_found_window.winfo_screenwidth() - self.not_found_window.winfo_reqwidth()) / 2
+        y = (self.not_found_window.winfo_screenheight() - self.not_found_window.winfo_reqheight()) / 2
+        self.not_found_window.geometry("+%d+%d" % (x, y))
+
+        # Create a frame
+        self.not_found_frame = customtkinter.CTkFrame(self.not_found_window)
+        self.not_found_frame.grid(row=0, column=0, columnspan=3, rowspan=3, pady=10, padx=10, sticky="nswe")
+        self.not_found_frame.grid_rowconfigure((0,1), weight=1)
+        self.not_found_frame.grid_columnconfigure(0, weight=1)
+
+        # Label
+        self.not_found_label_1 = customtkinter.CTkLabel(self.not_found_frame,
+                                                        text="Droguerias no encontradas:",
+                                                        text_font=("Roboto Medium", -16))
+        self.not_found_label_1.grid(row=0, column=0, columnspan=3, pady=10, padx=10, sticky="nswe")
+
+        # Create a listbox
+        self.not_found_listbox = customtkinter.CTkTextbox(self.not_found_frame,
+                                                        width=50,
+                                                        height=50)
+        self.not_found_listbox.grid(row=1, column=0, columnspan=3, pady=10, padx=10, sticky="nswe")
+        # Update listbox
+        self.not_found_listbox_update()
+
+    def not_found_listbox_update(self):
+        # open temp/relacion.json
+        with open('./temp/relacion.json', 'r') as json_file:
+            relacion = json.load(json_file)
+        # Update the listbox
+        for drogueria in relacion['No encontrados']:
+            # Add the file name to the listbox
+            self.not_found_listbox.insert("end", "•" + drogueria + "\n")
+        self.not_found_listbox.configure(state="disabled")
+        if relacion['No encontrados'] == []:
+            self.not_found_window.destroy()
 
     def on_closing(self, event=0):
         self.destroy()

@@ -2,6 +2,7 @@ import pandas as pd
 import numpy
 import os
 import mysql.connector
+import json
 
 host = '10.0.2.1'
 user = 'jonas.salas'
@@ -34,6 +35,9 @@ def connect_to_db():
 def transform_data():
     # Get raw data from ./Archivos
     raw_data = os.listdir('./Archivos')
+    # Open temp/relacion.json
+    with open('./temp/relacion.json', 'r') as json_file:
+        relacion = json.load(json_file)
     # Iterate over the raw data
     for file in raw_data:
         data = pd.read_excel(f'./Archivos/{file}', engine='openpyxl')
@@ -41,10 +45,16 @@ def transform_data():
         # Get file name
         file_name = name_drog(data, file.split('.')[0])
         if file_name != "No encontrado":
+            # Save relacion between file name and file name in json
+            relacion[file_name] = file
             # Save the data as a csv file in temp/csv folder
             data.to_csv(f'./temp/raw_csv/{file_name}.csv', index=False)
             # Move files from archivos to temp/processed_excel if file_name not "No encontrado"
             os.rename(f'./Archivos/{file}', f'./temp/processed_excel/{file}')
+    # Save the relacion in json
+    with open('./temp/relacion.json', 'w') as json_file:
+        # if key in relacion is not in json, add it
+        json.dump(relacion, json_file)
 
 
 def name_drog(data, name):
@@ -249,6 +259,8 @@ def prepare_final_csv():
     transform_data()
     if os.path.exists('./temp/raw_csv/'):
         list_not_found = []
+        if not os.listdir('./temp/raw_csv/'):
+            return Exception('No se encontraron archivos en la carpeta ./temp/raw_csv/')
         # Get all the files in temp/raw_csv folder
         files = os.listdir('./temp/raw_csv/')
         # Loop through the files
@@ -272,6 +284,9 @@ def prepare_final_csv():
                 process_dismeven()
             else:
                 list_not_found.append(file_name)
+    # If not files in ('./temp/processed_csv/') folder break the function
+    if not os.listdir('./temp/processed_csv/'):
+        return Exception('No se encontraron archivos en la carpeta ./temp/processed_csv/')
     # Get all the csv files in temp/processed_csv folder
     files = os.listdir('./temp/processed_csv/')
     # Create a list to store the dataframes
@@ -286,8 +301,29 @@ def prepare_final_csv():
     data = pd.concat(list_df)
     # Drop nan rows
     data = data.dropna()
-    # Drop rows with 'Precio Mayoreo' is a string
-    data = data[~data['Precio Mayoreo'].str.contains('Precio')]
+    # Drop rows where Precios Mayoreo is 'PRECIO'
+    data = data[data['Precio Mayoreo'] != 'PRECIO']
+    # Open the file 'farmacias.json'
+    with open('./farmacias.json') as json_file:
+        # Load the json file
+        farmacias = json.load(json_file)
+    # Create a list to store the actives farmacias
+    list_farmacias_abrev = []
+    # Loop through the farmacias
+    for farmacia in farmacias:
+        # Check if the farmacia is active
+        if farmacias[farmacia]['estado'] == 'Activo':
+            # Append the farmacia to the list
+            list_farmacias_abrev.append(farmacias[farmacia]['abreviatura'])
+    # Create a column for each farmacia
+    for farmacia in list_farmacias_abrev:
+        data[farmacia] = 0
     # Save the data as a csv file in temp/final_csv folder
     data.to_csv('./temp/final_csv.csv', index=False)
+
+    with open('./temp/relacion.json', 'r') as json_file:
+        relacion = json.load(json_file)
+    relacion['No encontrados'] = list_not_found
+    with open('./temp/relacion.json', 'w') as json_file:
+        json.dump(relacion, json_file)
 
