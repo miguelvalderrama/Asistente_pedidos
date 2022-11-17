@@ -61,7 +61,7 @@ class App(customtkinter.CTk):
 
         self.button_2 = customtkinter.CTkButton(master=self.frame_left,
                                                 text="Nuevo Pedido",
-                                                command="")
+                                                command=self.restart_df_units)
         self.button_2.grid(row=3, column=0, pady=10, padx=20)
 
         self.button_3 = customtkinter.CTkButton(master=self.frame_left,
@@ -151,10 +151,17 @@ class App(customtkinter.CTk):
         self.search_entry.grid(row=2, column=0, columnspan=1, rowspan=2,  pady=10, padx=20, sticky="we")
 
         # set default values
-        self.button_2.configure(state="disabled", text="Nuevo Pedido")
         self.button_3.configure(state="disabled", text="Descargar Archivos")
         self.search_entry.bind("<Return>", lambda event: self.search_and_update_tree())
         self.tree.bind("<Double-1>", self.change_units)
+        # Configure treeview tag colors
+        self.tree.tag_configure('Even', background='lightgray')
+        self.tree.tag_configure('Odd', background='white')
+        self.style = ttk.Style()
+        self.style.configure("Treeview", font=("Roboto", -13))
+        self.style.configure("Treeview.Heading", font=("Roboto", -13, "bold"))
+
+
         
         # Full size window
         self.state("zoomed")
@@ -167,8 +174,8 @@ class App(customtkinter.CTk):
 
     def change_units(self, event):
         """Change the number of units of the product for each farmacia"""
-        item = self.tree.selection()[0]
-        values = self.tree.item(item, "values")
+        self.item = self.tree.selection()[0]
+        values = self.tree.item(self.item, "values")
         # Create a new window
         self.new_window = customtkinter.CTkToplevel(self)
         self.new_window.title("Cambiar Unidades")
@@ -236,13 +243,13 @@ class App(customtkinter.CTk):
         self.button_1 = customtkinter.CTkButton(master=self.butttons_frame,
                                                 text="Aceptar",
                                                 border_width=2,  # <- custom border_width
-                                                command="")
+                                                command=self.change_units_accept)
         self.button_1.grid(row=0, column=0, columnspan=1, rowspan=1,  pady=5, padx=10, sticky="we")
 
         self.button_2 = customtkinter.CTkButton(master=self.butttons_frame,
                                                 text="Cancelar",
                                                 border_width=2,  # <- custom border_width
-                                                command="")
+                                                command=self.new_window.destroy)
         self.button_2.grid(row=0, column=1, columnspan=2, rowspan=1,  pady=5, padx=10, sticky="we")
 
         #Entry values
@@ -254,8 +261,29 @@ class App(customtkinter.CTk):
         self.entry_1.focus()
 
         # Bind enter key to button
-        self.new_window.bind("<Return>", lambda event: print("Enter pressed"))
+        self.new_window.bind("<Return>", lambda event: [self.change_units_accept(), self.new_window.destroy()])
         self.new_window.bind("<Escape>", lambda event: self.new_window.destroy())
+    
+    def change_units_accept(self):
+        # Get values from entries
+        self.entry_1_value = self.entry_1.get()
+        self.entry_2_value = self.entry_2.get()
+        self.entry_3_value = self.entry_3.get()
+
+        # Update temp df with new values
+        self.df.loc[self.df["Descripción del Artículo"] == self.tree.item(self.item, "values")[0], self.farmacias_activas_abrev[0]] = self.entry_1_value
+        self.df.loc[self.df["Descripción del Artículo"] == self.tree.item(self.item, "values")[0], self.farmacias_activas_abrev[1]] = self.entry_2_value
+        self.df.loc[self.df["Descripción del Artículo"] == self.tree.item(self.item, "values")[0], self.farmacias_activas_abrev[2]] = self.entry_3_value
+
+        # Update df with new values
+        self.df.to_csv('./temp/final_csv.csv', index=False)
+
+        # Update treeview
+        self.search_and_update_tree()
+
+        # Destroy window
+        self.new_window.destroy()
+        
 
     def config(self):
         self.config_window = customtkinter.CTkToplevel(self)
@@ -456,13 +484,49 @@ class App(customtkinter.CTk):
         # Clear the tree
         self.tree.delete(*self.tree.get_children())
         # Search in self.df
-        self.search_df = self.df[self.df["Descripción del Artículo"].str.contains(search_text, case=False)]
-        # Order the search_df by Precio Mayoreo
-        self.search_df = self.search_df.sort_values(by=["Precio Mayoreo"], ascending=True)
-        # Update the tree
-        for index, row in self.search_df.iterrows():
-            self.tree.insert("", "end", values=(row["Descripción del Artículo"], row["Precio Mayoreo"], row["Proveedor"], row[self.farmacias_activas_abrev[0]], row[self.farmacias_activas_abrev[1]], row[self.farmacias_activas_abrev[2]]))
-
+        if search_text != "":
+            self.search_df = self.df[self.df["Descripción del Artículo"].str.contains(search_text, case=False)]
+            # Order the search_df by Precio Mayoreo
+            self.search_df = self.search_df.sort_values(by=["Precio Mayoreo"], ascending=True)
+            # Update the tree
+            counter = 0
+            for index, row in self.search_df.iterrows():
+                if counter % 2 == 0:
+                    tag = "Even"
+                else:
+                    tag = "Odd"
+                counter += 1
+                self.tree.insert("", "end", values=(row["Descripción del Artículo"], row["Precio Mayoreo"], row["Proveedor"], row[self.farmacias_activas_abrev[0]], row[self.farmacias_activas_abrev[1]], row[self.farmacias_activas_abrev[2]]), tags=tag)
+        else:
+            # Show data with unit(self.farmacias_activas_abrev[n]) > 0
+            self.search_df_farma_1 = self.df[self.df[self.farmacias_activas_abrev[0]].astype(int) > 0]
+            self.search_df_farma_2 = self.df[self.df[self.farmacias_activas_abrev[1]].astype(int) > 0]
+            self.search_df_farma_3 = self.df[self.df[self.farmacias_activas_abrev[2]].astype(int) > 0]
+            # Concatenate the dataframes and drop duplicates
+            self.search_df = pd.concat([self.search_df_farma_1, self.search_df_farma_2, self.search_df_farma_3]).drop_duplicates()
+            # Order the search_df by Descripción del Artículo
+            self.search_df = self.search_df.sort_values(by=["Descripción del Artículo"], ascending=True)
+            # Update the tree
+            counter = 0
+            for index, row in self.search_df.iterrows():
+                if counter % 2 == 0:
+                    tag = "Even"
+                else:
+                    tag = "Odd"
+                counter += 1
+                self.tree.insert("", "end", values=(row["Descripción del Artículo"], row["Precio Mayoreo"], row["Proveedor"], row[self.farmacias_activas_abrev[0]], row[self.farmacias_activas_abrev[1]], row[self.farmacias_activas_abrev[2]]), tags=tag)
+                
+    def restart_df_units(self):
+        # Confirm the restart
+        if messagebox.askyesno("Confirmar", "¿Está seguro que desea reiniciar las unidades?"):
+            # Restart the units
+            self.df[self.farmacias_activas_abrev[0]] = 0
+            self.df[self.farmacias_activas_abrev[1]] = 0
+            self.df[self.farmacias_activas_abrev[2]] = 0
+            # Restart the units in temp/final_csv.csv
+            self.df.to_csv("temp/final_csv.csv", index=False)
+            self.search_and_update_tree()
+        
     def on_closing(self, event=0):
         self.destroy()
 
