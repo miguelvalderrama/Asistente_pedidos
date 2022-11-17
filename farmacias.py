@@ -63,7 +63,7 @@ def transform_data():
     # Save the relacion in json
     with open('./temp/relacion.json', 'w') as json_file:
         # if key in relacion is not in json, add it
-        json.dump(relacion, json_file)
+        json.dump(relacion, json_file, indent=4)
 
 
 def name_drog(data, name):

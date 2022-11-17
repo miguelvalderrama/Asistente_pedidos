@@ -348,7 +348,7 @@ class App(customtkinter.CTk):
             else:
                 self.farmacias[farmacia]["estado"] = "Inactivo"
         with open("farmacias.json", "w") as f:
-            json.dump(self.farmacias, f)
+            json.dump(self.farmacias, f, indent=4)
         
         self.save_last_update()
         farmacias.prepare_final_csv()
@@ -424,7 +424,7 @@ class App(customtkinter.CTk):
         # Update the last update date
         config["last_update"] = datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S")
         with open("temp/config.json", "w") as f:
-            json.dump(config, f)
+            json.dump(config, f, indent=4)
         # Update the label
         self.label_last_update.configure(text="Ultima actualización: \n" + config["last_update"])
 
