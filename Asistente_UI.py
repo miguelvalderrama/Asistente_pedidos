@@ -536,7 +536,6 @@ class App(customtkinter.CTk):
     def on_closing(self, event=0):
         self.destroy()
 
-
 if __name__ == "__main__":
     app = App()
     app.mainloop()
