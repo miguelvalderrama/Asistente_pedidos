@@ -16,6 +16,13 @@ drolanca = {'F.Venc ', 'Existencia', 'Descripción del Material', 'Principio act
 vitalclinic = {'LABORATORIO', 'PSICOTROPICOS Y CONTROLADO', 'FEC LOTE', 'PROMOCION', 'MONTO', 'CATEGORIA', 'PRECIO', 'CODIGO', 'PEDIDO', 'PRINC ACTIVO', 'INVENTARIO', 'NUEVO', 'DESCRIPCION', 'PRECIO UNIT', '%', 'COD BARRAS'}
 gracitana_medicinas = {'PRECIO', 'LABORATORIO', '$', 'TOTAL PEDIDO', 'PEDIDO', 'NOMBRE', 'CODIGO DE BARRA', 'VENCIMIENTO', 'CODIGO'}
 gracitana_material_medico = {'MARCA', 'PRECIO', '$', 'TOTAL PEDIDO', 'PEDIDO', 'NOMBRE', 'CODIGO DE BARRA', 'VENCIMIENTO', 'CODIGO'}
+drolvilla_importados = {'TOTAL $', 'CANT', 'FACTURACION TASA BCV ', 'COSTO EN BOLIVARES PARA FACTURACION', 'COSTO $', 'TOTAL BOLIVARES DIGITAL', 'MEDICINA IMPORTADA SOLO PAGO EN DOLARES', 'MARCA', 'CODIGO'}
+drolvilla_nacionales = ['alterno', 'cant', 'nombre', 'precio', 'total bs', 'Unnamed: 5']
+distmedic = {'Total Existe', 'PEDIDO', 'Código', 'Descripción', 'TOTAL', 'Garantía', 'ANTES', 'AHORA'}
+drosalud = {'Divisa', 'PRECIO', 'Total', 'PVP', 'Columna1', 'Marca', 'Pedido', 'Descripción', 'Código'}
+unipharma = {'USD', 'PEDIDO', 'TOTAL', 'CODIGO', 'DESCRIPCION'}
+
+drogs_existentes = ['dismeven', 'cobeca', 'insuaminca', 'drolanca', 'vitalclinic', 'gracitana_medicinas', 'gracitana_material_medico', 'drolvilla_importados', 'drolvilla_nacionales', 'distmedic', 'drosalud', 'unipharma']
 
 
 def connect_to_db():
@@ -40,8 +47,10 @@ def transform_data():
         relacion = json.load(json_file)
     # Iterate over the raw data
     for file in raw_data:
-        data = pd.read_excel(f'./Archivos/{file}', engine='openpyxl')
-        #try_name_drog(data, file)
+        if file.endswith('.xlsx'):
+            data = pd.read_excel(f'./Archivos/{file}', engine='openpyxl')
+        elif file.endswith('.xls'):
+            data = pd.read_excel(f'./Archivos/{file}', engine='xlrd')
         # Get file name
         file_name = name_drog(data, file.split('.')[0])
         if file_name != "No encontrado":
@@ -58,9 +67,12 @@ def transform_data():
 
 
 def name_drog(data, name):
+    data_iloc0 = set([x for x in data.iloc[0]])
     data_iloc5 = set([x for x in data.iloc[5]])
+    data_iloc7 = set([x for x in data.iloc[7]])
     data_iloc8 = set([x for x in data.iloc[8]])
     data_iloc11 = set([x for x in data.iloc[11]])
+    data_columns = [x for x in data.columns]
 
     if dismeven.issubset(data_iloc8):
         return "Dismeven"
@@ -76,6 +88,16 @@ def name_drog(data, name):
         return "Gracitana Medicinas"
     elif gracitana_material_medico.issubset(data_iloc11):
         return "Gracitana Material Medico"
+    elif drolvilla_importados.issubset(data_iloc0):
+        return "Drolvilla Importados"
+    elif drolvilla_nacionales == data_columns:
+        return "Drolvilla Nacionales"
+    elif distmedic.issubset(data_iloc11):
+        return "Distmedic"
+    elif drosalud.issubset(data_iloc7):
+        return "Drosalud"
+    elif unipharma.issubset(data_iloc8):
+        return "Unipharma"
     else:
         return "No encontrado"
 
@@ -260,6 +282,120 @@ def process_vitalclinic():
     # Save the data as a csv file in temp/processed_csv folder
     data.to_csv('./temp/processed_csv/Vitalclinic.csv', index=False)
 
+'''def process_distmedic():
+    # Get raw data from ./temp/raw_csv/Distmedic.csv
+    data = pd.read_csv('./temp/raw_csv/Distmedic.csv')
+    # New headers
+    new_headers = data.iloc[23]
+    # Drop the first 12 rows
+    data = data[:]
+    # Rename the headers
+    data.columns = new_headers
+    print(data.columns)'''
+
+def process_drosalud():
+    # Get raw data from ./temp/raw_csv/Drosalud.csv
+    data = pd.read_csv('./temp/raw_csv/Drosalud.csv')
+    # New headers
+    new_headers = data.iloc[7]
+    # Drop the first 10 rows
+    data = data[8:]
+    # Rename the headers
+    data.columns = new_headers
+    cols_to_use = ['Descripción', 'PRECIO']
+    data = data[cols_to_use]
+    # Transform 'PRECIO' to float
+    data['PRECIO'] = data['PRECIO'].str.replace(',', '.').astype(float)
+    # Get a connection to the database
+    cursor, conn = connect_to_db()
+    # Get tasa de cambio
+    cursor.execute("SELECT precio_compra_moneda_nacional FROM tipo_moneda WHERE nombre_singular = 'DOLAR'")
+    tasa_cambio = cursor.fetchone()[0]
+    # Close the connection
+    conn.close()
+    # Transform 'PRECIO' to bolivares
+    data['PRECIO'] = data['PRECIO'] * float(tasa_cambio)
+    # Round the column 'PRECIO' to 2 decimals
+    data['PRECIO'] = data['PRECIO'].round(2)
+    # Rename the columns
+    data = data.rename(columns={'Descripción': 'Descripción del Artículo', 'PRECIO': 'Precio Mayoreo'})
+    # Add column 'Proveedor'
+    data['Proveedor'] = 'Drosalud'
+    # Save the data as a csv file in temp/processed_csv folder
+    data.to_csv('./temp/processed_csv/Drosalud.csv', index=False)
+
+def process_drolvilla_nacionales():
+    # Get raw data from ./temp/raw_csv/Drolvilla_nacionales.csv
+    data = pd.read_csv('./temp/raw_csv/Drolvilla Nacionales.csv')
+    cols = ['nombre', 'precio']
+    data = data[cols]
+    # Rename the columns
+    data = data.rename(columns={'nombre': 'Descripción del Artículo', 'precio': 'Precio Mayoreo'})
+    # Get index where precio mayoreo = 'Sub - Total Factura:'
+    index = data[data['Precio Mayoreo'] == 'Sub - Total Factura:'].index
+    # Drop rows from index to the end
+    data = data.drop(data.index[index[0]:])
+    # Add column 'Proveedor'
+    # Transform 'PRECIO' to float
+    data['Precio Mayoreo'] = data['Precio Mayoreo'].str.replace(',', '.').astype(float)
+    data['Proveedor'] = 'Drolvilla Nacional'
+    # Save the data as a csv file in temp/processed_csv folder
+    data.to_csv('./temp/processed_csv/Drolvilla Nacional.csv', index=False)
+
+def process_drolvilla_importados():
+    # Get raw data from ./temp/raw_csv/Drolvilla_importados.csv
+    data = pd.read_csv('./temp/raw_csv/Drolvilla Importados.csv')
+    # New headers
+    new_headers = data.iloc[0]
+    # Drop the first row
+    data = data[1:]
+    # Rename the headers
+    data.columns = new_headers
+    cols_to_use = ['MEDICINA IMPORTADA SOLO PAGO EN DOLARES', 'COSTO EN BOLIVARES PARA FACTURACION']
+    data = data[cols_to_use]
+    # Transform 'PRECIO' to float
+    data['COSTO EN BOLIVARES PARA FACTURACION'] = data['COSTO EN BOLIVARES PARA FACTURACION'].str.replace(',', '.').astype(float)
+    # Round the column 'PRECIO' to 2 decimals
+    data['COSTO EN BOLIVARES PARA FACTURACION'] = data['COSTO EN BOLIVARES PARA FACTURACION'].round(2)
+    # Rename the columns
+    data = data.rename(columns={'MEDICINA IMPORTADA SOLO PAGO EN DOLARES': 'Descripción del Artículo', 'COSTO EN BOLIVARES PARA FACTURACION': 'Precio Mayoreo'})
+    # Add column 'Proveedor'
+    data['Proveedor'] = 'Drolvilla Importado'
+    # Save the data as a csv file in temp/processed_csv folder
+    data.to_csv('./temp/processed_csv/Drolvilla Importado.csv', index=False)
+
+def process_unipharma():
+    # Get raw data from ./temp/raw_csv/Unipharma.csv
+    data = pd.read_csv('./temp/raw_csv/Unipharma.csv')
+    # New headers
+    new_headers = data.iloc[8]
+    # Drop the first row
+    data = data[9:]
+    # Rename the headers
+    data.columns = new_headers
+    cols = ['DESCRIPCION', -0.05]
+    data = data[cols]
+    # Rename the columns
+    data = data.rename(columns={'DESCRIPCION': 'Descripción del Artículo', -0.05: 'Precio Mayoreo'})
+    # Drop rows where 'Precio Mayoreo' is 'NaN' or empty
+    data = data.dropna(subset=['Precio Mayoreo'])
+    # Transform 'PRECIO' to float
+    data['Precio Mayoreo'] = data['Precio Mayoreo'].astype(float)
+    # Connect to the database
+    cursor, conn = connect_to_db()
+    # Get tasa de cambio
+    cursor.execute("SELECT precio_compra_moneda_nacional FROM tipo_moneda WHERE nombre_singular = 'DOLAR'")
+    tasa_cambio = cursor.fetchone()[0]
+    # Close the connection
+    conn.close()
+    # Transform 'PRECIO' to bolivares
+    data['Precio Mayoreo'] = data['Precio Mayoreo'] * float(tasa_cambio)
+    # Round the column 'PRECIO' to 2 decimals
+    data['Precio Mayoreo'] = data['Precio Mayoreo'].round(2)
+    # Add column 'Proveedor'
+    data['Proveedor'] = 'Unipharma'
+    # Save the data as a csv file in temp/processed_csv folder
+    data.to_csv('./temp/processed_csv/Unipharma.csv', index=False)
 
 def prepare_final_csv():
     transform_data()
@@ -288,6 +424,14 @@ def prepare_final_csv():
                 process_drolanca()
             elif file_name == 'Dismeven':
                 process_dismeven()
+            elif file_name == 'Drosalud':
+                process_drosalud()
+            elif file_name == 'Drolvilla Nacionales':
+                process_drolvilla_nacionales()
+            elif file_name == 'Drolvilla Importados':
+                process_drolvilla_importados()
+            elif file_name == 'Unipharma':
+                process_unipharma()
             else:
                 list_not_found.append(file_name)
     # If not files in ('./temp/processed_csv/') folder break the function
@@ -326,9 +470,3 @@ def prepare_final_csv():
         data[farmacia] = 0
     # Save the data as a csv file in temp/final_csv folder
     data.to_csv('./temp/final_csv.csv', index=False)
-
-    with open('./temp/relacion.json', 'r') as json_file:
-        relacion = json.load(json_file)
-    relacion['No encontrados'] = list_not_found
-    with open('./temp/relacion.json', 'w') as json_file:
-        json.dump(relacion, json_file)
