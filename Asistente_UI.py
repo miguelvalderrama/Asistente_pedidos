@@ -432,7 +432,7 @@ class App(customtkinter.CTk):
         # Open a new window
         self.not_found_window = customtkinter.CTkToplevel(self)
         self.not_found_window.title("Droguerias no encontradas")
-        self.not_found_window.geometry("320x220")
+        self.not_found_window.geometry("420x190")
         self.not_found_window.grid_rowconfigure(0, weight=1)
         self.not_found_window.grid_columnconfigure(0, weight=1)
 
@@ -457,8 +457,11 @@ class App(customtkinter.CTk):
         # Create a listbox
         self.not_found_listbox = customtkinter.CTkTextbox(self.not_found_frame,
                                                         width=50,
-                                                        height=50)
+                                                        height=120)
         self.not_found_listbox.grid(row=1, column=0, columnspan=3, pady=10, padx=10, sticky="nswe")
+
+        self.not_found_window.bind("<Escape>", lambda event: self.not_found_window.destroy())
+
         # Update listbox
         self.not_found_listbox_update()
 
@@ -466,11 +469,14 @@ class App(customtkinter.CTk):
         # open temp/relacion.json
         with open('./temp/relacion.json', 'r') as json_file:
             relacion = json.load(json_file)
+        self.list_not_found = []
         # Update the listbox
-        for drogueria in relacion['No encontrados']:
+        for file in os.listdir("Archivos"):
             # Add the file name to the listbox
-            self.not_found_listbox.insert("end", "•" + drogueria + "\n")
+            self.not_found_listbox.insert("end", "•" + file + "\n")
+            self.list_not_found.append(file)
         self.not_found_listbox.configure(state="disabled")
+        relacion['No encontrados'] = self.list_not_found
         if relacion['No encontrados'] == []:
             self.not_found_window.destroy()
 
