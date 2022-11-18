@@ -499,9 +499,17 @@ class App(customtkinter.CTk):
         search_text = self.search_entry.get()
         # Clear the tree
         self.tree.delete(*self.tree.get_children())
+        # Search in the dataframe
+        self.search_df = self.df.copy()
         # Search in self.df
         if search_text != "":
-            self.search_df = self.df[self.df["Descripción del Artículo"].str.contains(search_text, case=False)]
+            for text in search_text.split(" "):
+                text = text.upper()
+                print(text)
+                if text[0] == '*':
+                    self.search_df = self.search_df[self.search_df["Descripción del Artículo"].str.contains(text[1:], case=False)]
+                else:
+                    self.search_df = self.search_df[self.search_df["Descripción del Artículo"].str.startswith(text, )]
             # Order the search_df by Precio Mayoreo
             self.search_df = self.search_df.sort_values(by=["Precio Mayoreo"], ascending=True)
             # Update the tree
