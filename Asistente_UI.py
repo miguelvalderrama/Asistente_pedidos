@@ -243,7 +243,7 @@ class App(customtkinter.CTk):
         self.button_1 = customtkinter.CTkButton(master=self.butttons_frame,
                                                 text="Aceptar",
                                                 border_width=2,  # <- custom border_width
-                                                command=self.change_units_accept)
+                                                command=self.verify_units_sanity)
         self.button_1.grid(row=0, column=0, columnspan=1, rowspan=1,  pady=5, padx=10, sticky="we")
 
         self.button_2 = customtkinter.CTkButton(master=self.butttons_frame,
@@ -261,9 +261,19 @@ class App(customtkinter.CTk):
         self.entry_1.focus()
 
         # Bind enter key to button
-        self.new_window.bind("<Return>", lambda event: [self.change_units_accept(), self.new_window.destroy()])
+        self.new_window.bind("<Return>", lambda event: [self.verify_units_sanity(), self.new_window.destroy()])
         self.new_window.bind("<Escape>", lambda event: self.new_window.destroy())
     
+    def verify_units_sanity(self):
+        if self.entry_1.get() == "":
+            self.entry_1.insert(0, "0")
+        if self.entry_2.get() == "":
+            self.entry_2.insert(0, "0")
+        if self.entry_3.get() == "":
+            self.entry_3.insert(0, "0")
+        # Call function to change units
+        self.change_units_accept()
+
     def change_units_accept(self):
         # Get values from entries
         self.entry_1_value = self.entry_1.get()
