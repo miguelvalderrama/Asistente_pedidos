@@ -1,0 +1,55 @@
+{
+    "farmacias": {
+        "F1": {
+            "id": 1,
+            "nombre": "FarmaHospital",
+            "abreviatura": "FH",
+            "estado": "Activo"
+        },
+        "F2": {
+            "id": 2,
+            "nombre": "Farmacia Fuerzas Armadas",
+            "abreviatura": "FFA",
+            "estado": "Activo"
+        },
+        "F3": {
+            "id": 3,
+            "nombre": "Farmacia Fuerzas Armadas 2",
+            "abreviatura": "FFA2",
+            "estado": "Activo"
+        },
+        "F4": {
+            "id": 4,
+            "nombre": "Farma Expres",
+            "abreviatura": "FE",
+            "estado": "Inactivo"
+        },
+        "F5": {
+            "id": 5,
+            "nombre": "FarmaSur",
+            "abreviatura": "FS",
+            "estado": "Inactivo"
+        },
+        "F6": {
+            "id": 6,
+            "nombre": "Farmacia +Ahorro",
+            "abreviatura": "F+A",
+            "estado": "Inactivo"
+        }
+    },
+    "relaciones": {
+        "Dismeven": "09-11-2022 FORMATO PEDIDOS DISMEVEN.xlsx",
+        "Cobeca": "Cobeca IND  11 NOV.xlsx",
+        "Insuaminca": "GRANDES CADENAS LISTA DE PRECIOS INSUAMINCA 11-11-22 ACT2.xlsx",
+        "Drolanca": "Inv Drolanca Barquisimeto 10_11.xlsx",
+        "Vitalclinic": "LISTADO DE PRECIOS GRANDES CADENAS DROGUERIA VITALCLINIC 10-11-2022.xlsx",
+        "Gracitana Material Medico": "MATERIAL MEDICO.xlsx",
+        "Gracitana Medicinas": "MEDICINAS.xlsx",
+        "No encontrados": [],
+        "Drosalud": "INVENTARIO DROSALUD CON % DESCUENTO.xlsx",
+        "Unipharma": "LISTA DE PRECIOS DROGUERIA UNIPHARMA 12-11-2022.xlsx",
+        "Drolvilla Importados": "IMPORTADOS 14-11-2022.xls",
+        "Drolvilla Nacionales": "lista_precios 14-11-2022.xls"
+    },
+    "last_update": "15/12/2022 15:07"
+}

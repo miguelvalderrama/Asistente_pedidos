@@ -18,7 +18,7 @@ gracitana_medicinas = {'PRECIO', 'LABORATORIO', '$', 'TOTAL PEDIDO', 'PEDIDO', '
 gracitana_material_medico = {'MARCA', 'PRECIO', '$', 'TOTAL PEDIDO', 'PEDIDO', 'NOMBRE', 'CODIGO DE BARRA', 'VENCIMIENTO', 'CODIGO'}
 drolvilla_importados = {'TOTAL $', 'CANT', 'FACTURACION TASA BCV ', 'COSTO EN BOLIVARES PARA FACTURACION', 'COSTO $', 'TOTAL BOLIVARES DIGITAL', 'MEDICINA IMPORTADA SOLO PAGO EN DOLARES', 'MARCA', 'CODIGO'}
 drolvilla_nacionales = ['alterno', 'cant', 'nombre', 'precio', 'total bs', 'Unnamed: 5']
-distmedic = {'Total Existe', 'PEDIDO', 'Código', 'Descripción', 'TOTAL', 'Garantía', 'ANTES', 'AHORA'}
+#distmedic = {'Total Existe', 'PEDIDO', 'Código', 'Descripción', 'TOTAL', 'Garantía', 'ANTES', 'AHORA'}
 drosalud = {'Divisa', 'PRECIO', 'Total', 'PVP', 'Columna1', 'Marca', 'Pedido', 'Descripción', 'Código'}
 unipharma = {'USD', 'PEDIDO', 'TOTAL', 'CODIGO', 'DESCRIPCION'}
 
@@ -43,8 +43,8 @@ def transform_data():
     # Get raw data from ./Archivos
     raw_data = os.listdir('./Archivos')
     # Open temp/relacion.json
-    with open('./temp/relacion.json', 'r') as json_file:
-        relacion = json.load(json_file)
+    with open('config.json', 'r') as json_file:
+        json_config = json.load(json_file)
     # Iterate over the raw data
     for file in raw_data:
         if file.endswith('.xlsx'):
@@ -55,15 +55,15 @@ def transform_data():
         file_name = name_drog(data, file.split('.')[0])
         if file_name != "No encontrado":
             # Save relacion between file name and file name in json
-            relacion[file_name] = file
+            json_config['relaciones'][file_name] = file
             # Save the data as a csv file in temp/csv folder
             data.to_csv(f'./temp/raw_csv/{file_name}.csv', index=False)
             # Move files from archivos to temp/processed_excel if file_name not "No encontrado"
             os.rename(f'./Archivos/{file}', f'./temp/processed_excel/{file}')
     # Save the relacion in json
-    with open('./temp/relacion.json', 'w') as json_file:
+    with open('config.json', 'w') as json_file:
         # if key in relacion is not in json, add it
-        json.dump(relacion, json_file, indent=4)
+        json.dump(json_config, json_file, indent=4)
 
 
 def name_drog(data, name):
@@ -92,8 +92,8 @@ def name_drog(data, name):
         return "Drolvilla Importados"
     elif drolvilla_nacionales == data_columns:
         return "Drolvilla Nacionales"
-    elif distmedic.issubset(data_iloc11):
-        return "Distmedic"
+    #elif distmedic.issubset(data_iloc11):
+        #return "Distmedic"
     elif drosalud.issubset(data_iloc7):
         return "Drosalud"
     elif unipharma.issubset(data_iloc8):
@@ -454,19 +454,43 @@ def prepare_final_csv():
     # Drop rows where Precios Mayoreo is 'PRECIO'
     data = data[data['Precio Mayoreo'] != 'PRECIO']
     # Open the file 'farmacias.json'
-    with open('./farmacias.json') as json_file:
-        # Load the json file
-        farmacias = json.load(json_file)
-    # Create a list to store the actives farmacias
-    list_farmacias_abrev = []
-    # Loop through the farmacias
-    for farmacia in farmacias:
-        # Check if the farmacia is active
-        if farmacias[farmacia]['estado'] == 'Activo':
-            # Append the farmacia to the list
-            list_farmacias_abrev.append(farmacias[farmacia]['abreviatura'])
+    list_farmacias_abrev = farmacias_activas()
     # Create a column for each farmacia
     for farmacia in list_farmacias_abrev:
         data[farmacia] = 0
     # Save the data as a csv file in temp/final_csv folder
     data.to_csv('./temp/final_csv.csv', index=False)
+
+def make_final_excel_files():
+    with open('./temp/relacion.json', 'r') as json_file:
+        relacion = json.load(json_file)
+
+    df = pd.read_csv('./temp/final_csv.csv')
+    list_farmacias_abrev = farmacias_activas()
+    for file in relacion:
+        if relacion[file] != "" and relacion[file] != []:
+            make_headers(file, relacion[file])
+            print(relacion[file])
+
+def make_headers(name, file):
+    try:
+        excel = pd.read_excel('./temp/processed_excel/' + file, engine='openpyxl')
+    except:
+        excel = pd.read_excel('./temp/processed_excel/' + file, engine='xlrd')
+    if name == "Cobeca":
+        print("Loop...")
+
+
+def farmacias_activas():
+    with open('config.json') as json_file:
+        # Load the json file
+        json_config = json.load(json_file)
+    # Create a list to store the actives farmacias
+    list_farmacias_abrev = []
+    # Loop through the farmacias
+    for farmacia in json_config['farmacias']:
+        # Check if the farmacia is active
+        if json_config['farmacias'][farmacia]['estado'] == 'Activo':
+            # Append the farmacia to the list
+            list_farmacias_abrev.append(json_config['farmacias'][farmacia]['abreviatura'])
+    return list_farmacias_abrev

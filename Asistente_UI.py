@@ -23,9 +23,9 @@ class App(customtkinter.CTk):
         self.geometry(f"{App.WIDTH}x{App.HEIGHT}")
         self.protocol("WM_DELETE_WINDOW", self.on_closing)  # call .on_closing() when app gets closed
 
-        with open("temp/config.json", "r") as f:
-            self.fconfig = json.load(f)
-            self.ultima_actualizacion = self.fconfig["last_update"]
+        with open("config.json", "r") as f:
+            self.json_config = json.load(f)
+            self.ultima_actualizacion = self.json_config["last_update"]
 
         # ============ create two frames ============
 
@@ -92,19 +92,15 @@ class App(customtkinter.CTk):
         # configure grid layout (2x4)
         self.frame_info.grid_rowconfigure(0, weight=1)
         self.frame_info.grid_columnconfigure(0, weight=1)
-
-        # Read farmacias.json config file
-        with open("farmacias.json", "r") as f:
-            self.farmacias = json.load(f)
         
         # Get farmacias names and their state (Activo/Inactivo)
         self.farmacias_names = []
         self.farmacias_state = []
         self.farmacias_abrev = []
-        for farmacia in self.farmacias:
-            self.farmacias_names.append(self.farmacias[farmacia]["nombre"])
-            self.farmacias_state.append(self.farmacias[farmacia]["estado"])
-            self.farmacias_abrev.append(self.farmacias[farmacia]["abreviatura"])
+        for farmacia in self.json_config['farmacias']:
+            self.farmacias_names.append(self.json_config['farmacias'][farmacia]["nombre"])
+            self.farmacias_state.append(self.json_config['farmacias'][farmacia]["estado"])
+            self.farmacias_abrev.append(self.json_config['farmacias'][farmacia]["abreviatura"])
 
         # List for farmacias activas
         self.farmacias_activas = []
@@ -352,13 +348,13 @@ class App(customtkinter.CTk):
             return self.config_window.destroy()
 
         # Update farmacias.json config file
-        for farmacia in self.farmacias:
-            if self.farmacias[farmacia]["nombre"] in self.farmacias_activas:
-                self.farmacias[farmacia]["estado"] = "Activo"
+        for farmacia in self.json_config['farmacias']:
+            if self.json_config['farmacias'][farmacia]["nombre"] in self.farmacias_activas:
+                self.json_config['farmacias'][farmacia]["estado"] = "Activo"
             else:
-                self.farmacias[farmacia]["estado"] = "Inactivo"
-        with open("farmacias.json", "w") as f:
-            json.dump(self.farmacias, f, indent=4)
+                self.json_config['farmacias'][farmacia]["estado"] = "Inactivo"
+        with open("config.json", "w") as f:
+            json.dump(self.json_config, f, indent=4)
         
         self.save_last_update()
         farmacias.prepare_final_csv()
@@ -428,15 +424,12 @@ class App(customtkinter.CTk):
         self.update_window.focus()
     
     def save_last_update(self):
-        # Save the last update date in temp/config.json
-        with open("temp/config.json", "r") as f:
-            config = json.load(f)
         # Update the last update date
-        config["last_update"] = datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S")
-        with open("temp/config.json", "w") as f:
-            json.dump(config, f, indent=4)
+        self.json_config["last_update"] = datetime.datetime.now().strftime("%d/%m/%Y %H:%M")
+        with open("config.json", "w") as f:
+            json.dump(self.json_config, f, indent=4)
         # Update the label
-        self.label_last_update.configure(text="Ultima actualización: \n" + config["last_update"])
+        self.label_last_update.configure(text="Ultima actualización: \n" + self.json_config["last_update"])
 
     def not_found_drogs(self):
         # Open a new window
@@ -476,9 +469,6 @@ class App(customtkinter.CTk):
         self.not_found_listbox_update()
 
     def not_found_listbox_update(self):
-        # open temp/relacion.json
-        with open('./temp/relacion.json', 'r') as json_file:
-            relacion = json.load(json_file)
         self.list_not_found = []
         # Update the listbox
         for file in os.listdir("Archivos"):
@@ -486,8 +476,8 @@ class App(customtkinter.CTk):
             self.not_found_listbox.insert("end", "•" + file + "\n")
             self.list_not_found.append(file)
         self.not_found_listbox.configure(state="disabled")
-        relacion['No encontrados'] = self.list_not_found
-        if relacion['No encontrados'] == []:
+        self.json_config['relaciones']['No encontrados'] = self.list_not_found
+        if self.json_config['relaciones']['No encontrados'] == []:
             self.not_found_window.destroy()
 
     def search_and_update_tree(self):
@@ -505,11 +495,7 @@ class App(customtkinter.CTk):
         if search_text != "":
             for text in search_text.split(" "):
                 text = text.upper()
-                print(text)
-                if text[0] == '*':
-                    self.search_df = self.search_df[self.search_df["Descripción del Artículo"].str.contains(text[1:], case=False)]
-                else:
-                    self.search_df = self.search_df[self.search_df["Descripción del Artículo"].str.startswith(text, )]
+                self.search_df = self.search_df[self.search_df["Descripción del Artículo"].str.contains(text)]
             # Order the search_df by Precio Mayoreo
             self.search_df = self.search_df.sort_values(by=["Precio Mayoreo"], ascending=True)
             # Update the tree
