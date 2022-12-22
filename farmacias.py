@@ -462,24 +462,11 @@ def prepare_final_csv():
     data.to_csv('./temp/final_csv.csv', index=False)
 
 def make_final_excel_files():
+    # Fetch files
     with open('./temp/relacion.json', 'r') as json_file:
         relacion = json.load(json_file)
-
     df = pd.read_csv('./temp/final_csv.csv')
     list_farmacias_abrev = farmacias_activas()
-    for file in relacion:
-        if relacion[file] != "" and relacion[file] != []:
-            make_headers(file, relacion[file])
-            print(relacion[file])
-
-def make_headers(name, file):
-    try:
-        excel = pd.read_excel('./temp/processed_excel/' + file, engine='openpyxl')
-    except:
-        excel = pd.read_excel('./temp/processed_excel/' + file, engine='xlrd')
-    if name == "Cobeca":
-        print("Loop...")
-
 
 def farmacias_activas():
     with open('config.json') as json_file:

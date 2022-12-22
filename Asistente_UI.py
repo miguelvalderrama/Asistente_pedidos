@@ -157,8 +157,6 @@ class App(customtkinter.CTk):
         self.style.configure("Treeview", font=("Roboto", -13))
         self.style.configure("Treeview.Heading", font=("Roboto", -13, "bold"))
 
-
-        
         # Full size window
         self.state("zoomed")
 
