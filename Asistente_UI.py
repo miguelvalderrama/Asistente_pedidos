@@ -423,6 +423,8 @@ class App(customtkinter.CTk):
     
     def save_last_update(self):
         # Update the last update date
+        with open("config.json", "r") as f:
+            self.json_config = json.load(f)
         self.json_config["last_update"] = datetime.datetime.now().strftime("%d/%m/%Y %H:%M")
         with open("config.json", "w") as f:
             json.dump(self.json_config, f, indent=4)
@@ -474,8 +476,8 @@ class App(customtkinter.CTk):
             self.not_found_listbox.insert("end", "•" + file + "\n")
             self.list_not_found.append(file)
         self.not_found_listbox.configure(state="disabled")
-        self.json_config['relaciones']['No encontrados'] = self.list_not_found
-        if self.json_config['relaciones']['No encontrados'] == []:
+        self.json_config["relaciones"]['No encontrados'] = self.list_not_found
+        if self.json_config["relaciones"]['No encontrados'] == []:
             self.not_found_window.destroy()
 
     def search_and_update_tree(self):

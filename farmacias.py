@@ -3,6 +3,8 @@ import numpy
 import os
 import mysql.connector
 import json
+import shutil
+import datetime
 
 host = '10.0.2.1'
 user = 'jonas.salas'
@@ -12,17 +14,15 @@ database = 'hptal'
 dismeven = {'DESCRIPCION PRODUCTO', 'LOTE', 'SUB TOTAL PRODUCTOS EN Bs', 'CATEGORÍA', 'ARTI.','SUB TOTAL PRODUCTOS EN $', 'UNIDAD DE \nEMPAQUE', 'CODIGO DE BARRA', 'CANTIDAD', ' EQUIVALENTE EN BS', 'UNIDAD DE VENTA', 'PRECIO UNITARIO $', 'FECHA DE VENCIMIENTO', 'MARCA'}
 cobeca = {'C. Prov.','existencia', 'PEDIDO', 'Precio Mayoreo', 'Cod. Art.', 'Descripción del Artículo', 'Cod. Ind.', 'OFERTAS', 'DIAS DE CREDITO ', 'Proveedor', 'PRINCIPIO ACTIVO '}
 insuaminca = {'CODBARRA', 'NUEVO', 'PRECIO UNIT', 'CODIGO', 'CATEGORIA', 'PEDIDO', 'MONTO', 'OFERTA', 'DESCRIPCION', 'FEC LOTE', 'PRECIO', 'INVENTARIO'}
-drolanca = {'F.Venc ', 'Existencia', 'Descripción del Material', 'Principio activo ', 'Dcto', 'Pedido', 'Laboratorio', '   Precio ', 'Bs. Pedido ', 'Precio Final ', 'Crédito ', 'Precio Si compra 18 Unid', 'Codigo de Barras', 'Código'}
+drolanca = {'F.Venc ', 'Existencia', 'Descripción del Material', 'Principio activo ', 'Dcto', 'Pedido', 'Laboratorio', '   Precio ', 'Bs. Pedido ', 'Precio Final ', 'Crédito ', 'Codigo de Barras', 'Código'}
 vitalclinic = {'LABORATORIO', 'PSICOTROPICOS Y CONTROLADO', 'FEC LOTE', 'PROMOCION', 'MONTO', 'CATEGORIA', 'PRECIO', 'CODIGO', 'PEDIDO', 'PRINC ACTIVO', 'INVENTARIO', 'NUEVO', 'DESCRIPCION', 'PRECIO UNIT', '%', 'COD BARRAS'}
 gracitana_medicinas = {'PRECIO', 'LABORATORIO', '$', 'TOTAL PEDIDO', 'PEDIDO', 'NOMBRE', 'CODIGO DE BARRA', 'VENCIMIENTO', 'CODIGO'}
 gracitana_material_medico = {'MARCA', 'PRECIO', '$', 'TOTAL PEDIDO', 'PEDIDO', 'NOMBRE', 'CODIGO DE BARRA', 'VENCIMIENTO', 'CODIGO'}
 drolvilla_importados = {'TOTAL $', 'CANT', 'FACTURACION TASA BCV ', 'COSTO EN BOLIVARES PARA FACTURACION', 'COSTO $', 'TOTAL BOLIVARES DIGITAL', 'MEDICINA IMPORTADA SOLO PAGO EN DOLARES', 'MARCA', 'CODIGO'}
-drolvilla_nacionales = ['alterno', 'cant', 'nombre', 'precio', 'total bs', 'Unnamed: 5']
+drolvilla_nacionales = {'alterno', 'nombre', 'precio'}
 #distmedic = {'Total Existe', 'PEDIDO', 'Código', 'Descripción', 'TOTAL', 'Garantía', 'ANTES', 'AHORA'}
 drosalud = {'Divisa', 'PRECIO', 'Total', 'PVP', 'Columna1', 'Marca', 'Pedido', 'Descripción', 'Código'}
 unipharma = {'USD', 'PEDIDO', 'TOTAL', 'CODIGO', 'DESCRIPCION'}
-
-drogs_existentes = ['dismeven', 'cobeca', 'insuaminca', 'drolanca', 'vitalclinic', 'gracitana_medicinas', 'gracitana_material_medico', 'drolvilla_importados', 'drolvilla_nacionales', 'distmedic', 'drosalud', 'unipharma']
 
 
 def connect_to_db():
@@ -55,7 +55,7 @@ def transform_data():
         file_name = name_drog(data, file.split('.')[0])
         if file_name != "No encontrado":
             # Save relacion between file name and file name in json
-            json_config['relaciones'][file_name] = file
+            json_config["relaciones"][file_name] = file
             # Save the data as a csv file in temp/csv folder
             data.to_csv(f'./temp/raw_csv/{file_name}.csv', index=False)
             # Move files from archivos to temp/processed_excel if file_name not "No encontrado"
@@ -90,7 +90,7 @@ def name_drog(data, name):
         return "Gracitana Material Medico"
     elif drolvilla_importados.issubset(data_iloc0):
         return "Drolvilla Importados"
-    elif drolvilla_nacionales == data_columns:
+    elif drolvilla_nacionales.issubset(data_iloc0):
         return "Drolvilla Nacionales"
     #elif distmedic.issubset(data_iloc11):
         #return "Distmedic"
@@ -166,7 +166,7 @@ def process_drolanca():
     # New headers    
     new_headers = data.iloc[5]
     # Drop the first 10 rows
-    data = data[10:]
+    data = data[6:]
     # Rename the headers
     data.columns = new_headers
     cols_to_use = ['Descripción del Material', 'Precio Final ']
@@ -327,6 +327,11 @@ def process_drosalud():
 def process_drolvilla_nacionales():
     # Get raw data from ./temp/raw_csv/Drolvilla_nacionales.csv
     data = pd.read_csv('./temp/raw_csv/Drolvilla Nacionales.csv')
+    new_headers = data.iloc[0]
+    # Drop the first 10 rows
+    data = data[1:]
+    # Rename the headers
+    data.columns = new_headers
     cols = ['nombre', 'precio']
     data = data[cols]
     # Rename the columns
@@ -334,11 +339,11 @@ def process_drolvilla_nacionales():
     # Get index where precio mayoreo = 'Sub - Total Factura:'
     index = data[data['Precio Mayoreo'] == 'Sub - Total Factura:'].index
     # Drop rows from index to the end
-    data = data.drop(data.index[index[0]:])
+    data = data[:index[0]-1]
     # Add column 'Proveedor'
     # Transform 'PRECIO' to float
     data['Precio Mayoreo'] = data['Precio Mayoreo'].str.replace(',', '.').astype(float)
-    data['Proveedor'] = 'Drolvilla Nacional'
+    data['Proveedor'] = 'Drolvilla Nacionales'
     # Save the data as a csv file in temp/processed_csv folder
     data.to_csv('./temp/processed_csv/Drolvilla Nacional.csv', index=False)
 
@@ -360,7 +365,7 @@ def process_drolvilla_importados():
     # Rename the columns
     data = data.rename(columns={'MEDICINA IMPORTADA SOLO PAGO EN DOLARES': 'Descripción del Artículo', 'COSTO EN BOLIVARES PARA FACTURACION': 'Precio Mayoreo'})
     # Add column 'Proveedor'
-    data['Proveedor'] = 'Drolvilla Importado'
+    data['Proveedor'] = 'Drolvilla Importados'
     # Save the data as a csv file in temp/processed_csv folder
     data.to_csv('./temp/processed_csv/Drolvilla Importado.csv', index=False)
 
@@ -463,10 +468,53 @@ def prepare_final_csv():
 
 def make_final_excel_files():
     # Fetch files
-    with open('./temp/relacion.json', 'r') as json_file:
-        relacion = json.load(json_file)
+    with open('config.json', 'r') as json_file:
+        config = json.load(json_file)
     df = pd.read_csv('./temp/final_csv.csv')
-    list_farmacias_abrev = farmacias_activas()
+
+    # Divide final csv in each pharma csv
+    for pharma in df.columns[3:]:
+        # Search pharma name
+        for farmacia in config['farmacias']:
+            if config['farmacias'][farmacia]['abreviatura'] == pharma:
+                nombre = config['farmacias'][farmacia]['nombre']
+        # Create a data frame
+        df_pharma = df.loc[:, ['Descripción del Artículo', 'Precio Mayoreo', 'Proveedor', pharma]]
+        # Remove products without units
+        df_pharma = df_pharma[df_pharma[pharma] != 0]
+        # Create files
+        for idx, drog in df_pharma.drop_duplicates('Proveedor').iterrows():
+            file = config['relaciones'][drog['Proveedor']]
+            file_type = config['relaciones'][drog['Proveedor']].split('.')[1]
+            shutil.copy(f'./temp/processed_excel/{file}', f'./Archivos Procesados/{drog["Proveedor"]} {nombre} {datetime.datetime.today().strftime("%Y-%m-%d")}.{file_type}')
+        
+        for idx, drog in df_pharma.iterrows():
+            file_type = config['relaciones'][drog['Proveedor']].split('.')[1]
+            file = f'./Archivos Procesados/{drog["Proveedor"]} {nombre} {datetime.datetime.today().strftime("%Y-%m-%d")}.{file_type}'
+            row_for_units = row_for_units_fun(drog["Proveedor"])
+            if file_type == 'xlsx':
+                excel_file = pd.read_excel(file, engine='openpyxl')
+            elif file_type == 'xls':
+                excel_file = pd.read_excel(file, engine='xlrd')
+
+            #Search for the index in the file
+            index = excel_file[excel_file[row_for_units[0]] == drog['Descripción del Artículo']].index.values
+            excel_file.loc[index, row_for_units[1]] = drog[pharma]
+
+            if file_type == 'xlsx':
+                with pd.ExcelWriter(file, engine='openpyxl') as writer:
+                    excel_file.to_excel(writer, index=False, header=False)
+
+def row_for_units_fun(prov):
+    if prov == 'Drolanca':
+        return ('Unnamed: 2','Unnamed: 11')
+    elif prov == 'Insuaminca':
+        return ('Unnamed: 4', 'Unnamed: 10')
+    elif prov == 'Drolvilla Importado':
+        return('Unnamed: 3', 'Unnamed: 2')
+    elif prov == 'Drolvilla Nacionales':
+        return ('Unnamed: 2', 'Unnamed: 1')
+
 
 def farmacias_activas():
     with open('config.json') as json_file:
@@ -481,3 +529,14 @@ def farmacias_activas():
             # Append the farmacia to the list
             list_farmacias_abrev.append(json_config['farmacias'][farmacia]['abreviatura'])
     return list_farmacias_abrev
+
+def delete_content_folder(folder):
+    for filename in os.listdir(folder):
+        file_path = os.path.join(folder, filename)
+        try:
+            if os.path.isfile(file_path) or os.path.islink(file_path):
+                os.unlink(file_path)
+            elif os.path.isdir(file_path):
+                shutil.rmtree(file_path)
+        except Exception as e:
+            print('Failed to delete %s. Reason: %s' % (file_path, e))

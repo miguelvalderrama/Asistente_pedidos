@@ -4,52 +4,44 @@
             "id": 1,
             "nombre": "FarmaHospital",
             "abreviatura": "FH",
-            "estado": "Activo"
+            "estado": "Inactivo"
         },
         "F2": {
             "id": 2,
             "nombre": "Farmacia Fuerzas Armadas",
             "abreviatura": "FFA",
-            "estado": "Activo"
+            "estado": "Inactivo"
         },
         "F3": {
             "id": 3,
             "nombre": "Farmacia Fuerzas Armadas 2",
             "abreviatura": "FFA2",
-            "estado": "Activo"
+            "estado": "Inactivo"
         },
         "F4": {
             "id": 4,
             "nombre": "Farma Expres",
             "abreviatura": "FE",
-            "estado": "Inactivo"
+            "estado": "Activo"
         },
         "F5": {
             "id": 5,
             "nombre": "FarmaSur",
             "abreviatura": "FS",
-            "estado": "Inactivo"
+            "estado": "Activo"
         },
         "F6": {
             "id": 6,
             "nombre": "Farmacia +Ahorro",
             "abreviatura": "AHORRO",
-            "estado": "Inactivo"
+            "estado": "Activo"
         }
     },
     "relaciones": {
-        "Dismeven": "09-11-2022 FORMATO PEDIDOS DISMEVEN.xlsx",
-        "Cobeca": "Cobeca IND  11 NOV.xlsx",
-        "Insuaminca": "GRANDES CADENAS LISTA DE PRECIOS INSUAMINCA 11-11-22 ACT2.xlsx",
-        "Drolanca": "Inv Drolanca Barquisimeto 10_11.xlsx",
-        "Vitalclinic": "LISTADO DE PRECIOS GRANDES CADENAS DROGUERIA VITALCLINIC 10-11-2022.xlsx",
-        "Gracitana Material Medico": "MATERIAL MEDICO.xlsx",
-        "Gracitana Medicinas": "MEDICINAS.xlsx",
-        "No encontrados": [],
-        "Drosalud": "INVENTARIO DROSALUD CON % DESCUENTO.xlsx",
-        "Unipharma": "LISTA DE PRECIOS DROGUERIA UNIPHARMA 12-11-2022.xlsx",
-        "Drolvilla Importados": "IMPORTADOS 14-11-2022.xls",
-        "Drolvilla Nacionales": "lista_precios 14-11-2022.xls"
+        "Insuaminca": "GRANDES CADENAS LISTA DE PRECIOS INSUAMINCA 03-01-23 ACT2.xlsx",
+        "Drolvilla Importado": "IMPORTADOS 02-01-2023.xls",
+        "Drolanca": "Inv Drolanca Barquisimeto 03_01.xlsx",
+        "Drolvilla Nacionales": "lista_precios 02-01-2023.xls"
     },
-    "last_update": "15/12/2022 15:07"
+    "last_update": "03/01/2023 13:32"
 }
